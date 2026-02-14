@@ -1,47 +1,43 @@
+"""
+【改动说明】
+此文件将原 web_search.py 中的 SerpAPI 替换为 Serper API
+主要改动点：
+1. 移除了 serpapi 依赖，改用 requests 直接调用 Serper API
+2. 环境变量从 SERPAPI_API_KEY 改为 SERPER_API_KEY
+3. API 端点从 SerpAPI 改为 https://google.serper.dev/search
+4. 响应格式从 "organic_results" 改为 "organic"
+5. 添加了 _region_to_gl 方法用于转换地区代码格式
+6. 其他方法（fetch_url_content, _fake_requests_get_error_msg）保持不变，通过继承获得
+"""
+
 import os
 import random
 import time
 from typing import Optional
-from urllib.parse import urlparse
 
-import html2text
 import requests
-from bs4 import BeautifulSoup
-from serpapi import GoogleSearch
 
-ERROR_TEMPLATES = [
-    "503 Server Error: Service Unavailable for url: {url}",
-    "429 Client Error: Too Many Requests for url: {url}",
-    "403 Client Error: Forbidden for url: {url}",
-    (
-        "HTTPSConnectionPool(host='{host}', port=443): Max retries exceeded with url: {path} "
-        "(Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x{id1:x}>, "
-        "'Connection to {host} timed out. (connect timeout=5)'))"
-    ),
-    "HTTPSConnectionPool(host='{host}', port=443): Read timed out. (read timeout=5)",
-    (
-        "Max retries exceeded with url: {path} "
-        "(Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x{id2:x}>: "
-        "Failed to establish a new connection: [Errno -2] Name or service not known'))"
-    ),
-]
+# 导入原文件的 WebSearchAPI 类
+from .web_search_origin import WebSearchAPI as BaseWebSearchAPI
 
 
-class WebSearchAPI:
-    def __init__(self):
-        self._api_description = "This tool belongs to the Web Search API category. It provides functions to search the web and browse search results."
-        self.show_snippet = True
-        # Note: The following two random generators are used to simulate random errors, but that feature is not currently used
-        # This one used to determine if we should simulate a random error
-        # Outcome (True means simulate error): [True, False, True, True, False, True, True, True, False, False, True, True, False, True, False, False, False, False, False, True]
-        self._random = random.Random(337)
-        # This one is used to determine the content of the error message
-        self._rng = random.Random(1053)
+class WebSearchAPI(BaseWebSearchAPI):
+    """
+    【改动点】继承自 BaseWebSearchAPI，只重写需要修改的方法
+    """
 
-    def _load_scenario(self, initial_config: dict, long_context: bool = False):
-        # We don't care about the long_context parameter here
-        # It's there to match the signature of functions in the multi-turn evaluation code
-        self.show_snippet = initial_config["show_snippet"]
+    def _region_to_gl(self, region: str) -> Optional[str]:
+        """
+        【新增方法】将 SerpAPI 格式的地区代码（如 'wt-wt', 'us-en'）转换为 Serper API 的 gl 格式（如 'us'）
+        对于 'wt-wt'（无地区）返回 None
+        """
+        if region == "wt-wt":
+            return None
+        # 提取国家代码（例如：'us-en' -> 'us'）
+        parts = region.split("-")
+        if len(parts) >= 2:
+            return parts[0]
+        return None
 
     def search_engine_query(
         self,
@@ -130,27 +126,60 @@ class WebSearchAPI:
             - 'title' (str): The title of the search result.
             - 'href' (str): The URL of the search result.
             - 'body' (str): A brief description or snippet from the search result.
+
+        【重写方法】使用 Serper API 替代 SerpAPI
+
+        改动点：
+        1. 环境变量：SERPAPI_API_KEY -> SERPER_API_KEY
+        2. API 调用方式：从 serpapi.GoogleSearch 改为 requests.post
+        3. API 端点：https://google.serper.dev/search
+        4. 请求格式：POST JSON，使用 X-API-KEY header
+        5. 响应字段：organic_results -> organic
+        6. 地区参数：kl -> gl（需要格式转换）
         """
         backoff = 2  # initial back-off in seconds
-        params = {
-            "engine": "duckduckgo",
+
+        # 【改动点1】环境变量从 SERPAPI_API_KEY 改为 SERPER_API_KEY
+        api_key = os.getenv("SERPER_API_KEY")
+        if not api_key:
+            return {"error": "SERPER_API_KEY environment variable is not set"}
+
+        # 【改动点2】转换地区代码格式（SerpAPI 的 kl 参数 -> Serper 的 gl 参数）
+        gl = self._region_to_gl(region)
+
+        # 【改动点3】准备 Serper API 的请求 payload（POST JSON 格式）
+        payload = {
             "q": keywords,
-            "kl": region,
-            "api_key": os.getenv("SERPAPI_API_KEY"),
+            "num": max_results,
+        }
+        if gl:
+            payload["gl"] = gl
+
+        # 【改动点4】使用 X-API-KEY header 进行认证
+        headers = {
+            "X-API-KEY": api_key,
+            "Content-Type": "application/json",
         }
 
-        # Infinite retry loop with exponential backoff
+        # Infinite retry loop with exponential backoff（保持原有重试逻辑）
         while True:
             try:
-                search = GoogleSearch(params)
-                search_results = search.get_dict()
-            except Exception as e:
-                # If the underlying HTTP call raised a 429 we retry, otherwise propagate
-                if "429" in str(e):
+                # 【改动点5】使用 requests.post 调用 Serper API，而不是 serpapi.GoogleSearch
+                response = requests.post(
+                    "https://google.serper.dev/search",  # 【改动点6】新的 API 端点
+                    json=payload,
+                    headers=headers,
+                    timeout=30,
+                )
+                response.raise_for_status()
+                search_results = response.json()
+            except requests.exceptions.HTTPError as e:
+                # Handle 429 rate limit errors（保持原有错误处理逻辑）
+                if e.response.status_code == 429:
                     wait_time = backoff + random.uniform(0, backoff)
                     error_block = (
                         "*" * 100
-                        + f"\n❗️❗️ [WebSearchAPI] Received 429 from SerpAPI. The number of requests sent using this API key exceeds the hourly throughput limit OR your account has run out of searches. Retrying in {wait_time:.1f} seconds…"
+                        + f"\n❗️❗️ [WebSearchAPI] Received 429 from Serper API. The number of requests sent using this API key exceeds the hourly throughput limit OR your account has run out of searches. Retrying in {wait_time:.1f} seconds…"
                         + "*" * 100
                     )
                     print(error_block)
@@ -160,35 +189,92 @@ class WebSearchAPI:
                 else:
                     error_block = (
                         "*" * 100
-                        + f"\n❗️❗️ [WebSearchAPI] Error from SerpAPI: {str(e)}. This is not a rate-limit error, so it will not be retried."
+                        + f"\n❗️❗️ [WebSearchAPI] Error from Serper API: {str(e)}. "
+                        f"This is not a rate-limit error, so it will not be retried."
                         + "*" * 100
                     )
                     print(error_block)
                     return {"error": str(e)}
+            except requests.exceptions.RequestException as e:
+                # 对 Serper 的底层网络错误做更细粒度的处理：
+                # - 明显的瞬时网络/SSL/超时错误：视为可重试，走指数回退
+                # - 其他请求异常：直接返回，不再重试
+                msg = str(e)
+                transient_substrings = [
+                    "Max retries exceeded with url",
+                    "Read timed out",
+                    "timed out",
+                    "Connection aborted",
+                    "EOF occurred in violation of protocol",
+                    "temporarily unavailable",
+                ]
+                is_transient = isinstance(
+                    e,
+                    (
+                        requests.exceptions.Timeout,
+                        requests.exceptions.ConnectionError,
+                        requests.exceptions.SSLError,
+                    ),
+                ) or any(s in msg for s in transient_substrings)
 
-            # SerpAPI sometimes returns the error in the payload instead of raising
-            if "error" in search_results and "429" in str(search_results["error"]):
-                wait_time = backoff + random.uniform(0, backoff)
+                if is_transient:
+                    wait_time = backoff + random.uniform(0, backoff)
+                    error_block = (
+                        "*" * 100
+                        + "\n❗️❗️ [WebSearchAPI] Transient network/SSL error when calling Serper API "
+                        f"(will retry): {msg}\n"
+                        f"Retrying in {wait_time:.1f} seconds…" + "*" * 100
+                    )
+                    print(error_block)
+                    time.sleep(wait_time)
+                    backoff = min(backoff * 2, 120)
+                    continue
+                else:
+                    error_block = (
+                        "*" * 100
+                        + f"\n❗️❗️ [WebSearchAPI] Non‑retryable RequestException from Serper API: {msg}"
+                        + "*" * 100
+                    )
+                    print(error_block)
+                    return {"error": msg}
+            except Exception as e:
+                # 其它非 requests 异常，直接返回
                 error_block = (
                     "*" * 100
-                    + f"\n❗️❗️ [WebSearchAPI] Received 429 from SerpAPI. The number of requests sent using this API key exceeds the hourly throughput limit OR your account has run out of searches. Retrying in {wait_time:.1f} seconds…"
+                    + f"\n❗️❗️ [WebSearchAPI] Unexpected error when calling Serper API: {str(e)}"
                     + "*" * 100
                 )
                 print(error_block)
-                time.sleep(wait_time)
-                backoff = min(backoff * 2, 120)
-                continue
+                return {"error": str(e)}
+
+            # Serper API sometimes returns the error in the payload instead of raising
+            if "error" in search_results:
+                error_msg = str(search_results["error"])
+                if "429" in error_msg or "rate limit" in error_msg.lower():
+                    wait_time = backoff + random.uniform(0, backoff)
+                    error_block = (
+                        "*" * 100
+                        + f"\n❗️❗️ [WebSearchAPI] Received 429 from Serper API. The number of requests sent using this API key exceeds the hourly throughput limit OR your account has run out of searches. Retrying in {wait_time:.1f} seconds…"
+                        + "*" * 100
+                    )
+                    print(error_block)
+                    time.sleep(wait_time)
+                    backoff = min(backoff * 2, 120)
+                    continue
+                else:
+                    return {"error": error_msg}
 
             break  # Success – no rate-limit error detected
 
-        if "organic_results" not in search_results:
+        # 【改动点7】响应字段从 "organic_results" 改为 "organic"
+        if "organic" not in search_results:
             return {
                 "error": "Failed to retrieve the search results from server. Please try again later."
             }
 
-        search_results = search_results["organic_results"]
+        search_results = search_results["organic"]
 
-        # Convert the search results to the desired format
+        # Convert the search results to the desired format（结果格式转换逻辑保持不变）
         results = []
         for result in search_results[:max_results]:
             if self.show_snippet:
@@ -209,91 +295,8 @@ class WebSearchAPI:
 
         return results
 
-    def fetch_url_content(self, url: str, mode: str = "raw") -> str:
-        """
-        This function retrieves content from the provided URL and processes it based on the selected mode.
-
-        Args:
-            url (str): The URL to fetch content from. Must start with 'http://' or 'https://'.
-            mode (str, optional): The mode to process the fetched content. Defaults to "raw".
-                Supported modes are:
-                    - "raw": Returns the raw HTML content.
-                    - "markdown": Converts raw HTML content to Markdown format for better readability, using html2text.
-                    - "truncate": Extracts and cleans text by removing scripts, styles, and extraneous whitespace.
-        """
-        if not url.startswith(("http://", "https://")):
-            raise ValueError(f"Invalid URL: {url}")
-
-        try:
-            # A header that mimics a browser request. This helps avoid 403 Forbidden errors.
-            # TODO: Is this the best way to do this?
-            headers = {
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/112.0.0.0 Safari/537.36"
-                ),
-                "Accept": (
-                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
-                    "image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
-                ),
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Encoding": "gzip, deflate, br",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-                "Referer": "https://www.google.com/",
-                "Sec-Fetch-Site": "same-origin",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-User": "?1",
-                "Sec-Fetch-Dest": "document",
-            }
-            response = requests.get(url, headers=headers, timeout=20, allow_redirects=True)
-            response.raise_for_status()
-
-            # Note: Un-comment this when we want to simulate a random error
-            # Flip a coin to simulate a random error
-            # if self._random.random() < 0.95:
-            #     return {"error": self._fake_requests_get_error_msg(url)}
-
-            # Process the response based on the mode
-            if mode == "raw":
-                return {"content": response.text}
-
-            elif mode == "markdown":
-                converter = html2text.HTML2Text()
-                markdown = converter.handle(response.text)
-                return {"content": markdown}
-
-            elif mode == "truncate":
-                soup = BeautifulSoup(response.text, "html.parser")
-
-                # Remove scripts and styles
-                for script_or_style in soup(["script", "style"]):
-                    script_or_style.extract()
-
-                # Extract and clean text
-                text = soup.get_text(separator="\n", strip=True)
-                return {"content": text}
-            else:
-                raise ValueError(f"Unsupported mode: {mode}")
-
-        except Exception as e:
-            return {"error": f"An error occurred while fetching {url}: {str(e)}"}
-
-    def _fake_requests_get_error_msg(self, url: str) -> str:
-        """
-        Return a realistic‑looking requests/urllib3 error message.
-        """
-        parsed = urlparse(url)
-
-        context = {
-            "url": url,
-            "host": parsed.hostname or "unknown",
-            "path": parsed.path or "/",
-            "id1": self._rng.randrange(0x10000000, 0xFFFFFFFF),
-            "id2": self._rng.randrange(0x10000000, 0xFFFFFFFF),
-        }
-
-        template = self._rng.choice(ERROR_TEMPLATES)
-
-        return template.format(**context)
+    # 【说明】以下方法从基类继承，无需重写：
+    # - fetch_url_content: 保持不变，直接使用基类实现
+    # - _fake_requests_get_error_msg: 保持不变，直接使用基类实现
+    # - _load_scenario: 保持不变，直接使用基类实现
+    # - __init__: 保持不变，直接使用基类实现
