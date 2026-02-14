@@ -249,7 +249,8 @@ class BFCLEnv:
         self.entries = [deepcopy(entry) for _ in range(self.group_n)]
         self.entry_id = entry["id"]
         self.entry_category = extract_test_category_from_id(self.entry_id)
-        self.ground_truth = self.ground_truth_dict.get(self.entry_id, {})
+        ground_truth_id = self.entry_id.split("classic:")[1] if self.entry_category == "format_sensitivity" else self.entry_id
+        self.ground_truth = self.ground_truth_dict.get(ground_truth_id, {})
         self.is_multi_turn_interaction = contain_multi_turn_interaction(self.entry_id)
         self.is_FC = self.handler.is_fc_model if self.handler else False
         self.is_OSS = isinstance(self.handler, OSSHandler) if self.handler else False

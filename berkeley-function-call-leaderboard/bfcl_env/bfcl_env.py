@@ -101,18 +101,13 @@ def build_bfclv4_envs(
         all_test_entries_involved,
     ) = get_involved_test_entries(test_category, None)
 
-    if isinstance(model_name, str):
-        model_name = [model_name]
-
-    for m_name in model_name:
-        if m_name not in MODEL_CONFIG_MAPPING:
-            raise ValueError(f"Unknown model_name '{m_name}'.\n• For officially supported models, please refer to `SUPPORTED_MODELS.md`.\n• For running new models, please refer to `README.md` and `CONTRIBUTING.md`.")
+    if model_name not in MODEL_CONFIG_MAPPING:
+            raise ValueError(f"Unknown model_name '{model_name}'.\n• For officially supported models, please refer to `SUPPORTED_MODELS.md`.\n• For running new models, please refer to `README.md` and `CONTRIBUTING.md`.")
     print(f"Building BFCL environments for {model_name}")
 
     if any(is_format_sensitivity(test_category) for test_category in all_test_categories):
-        for m_name in model_name:
-            if MODEL_CONFIG_MAPPING[m_name].is_fc_model:
-                print(f"⚠️ Warning: Format sensitivity test cases are only supported for prompting (non-FC) models. Since {m_name} is a FC model based on its config, the format sensitivity test cases will be skipped.")
+        if MODEL_CONFIG_MAPPING[model_name].is_fc_model:
+            print(f"⚠️ Warning: Format sensitivity test cases are only supported for prompting (non-FC) models. Since {model_name} is a FC model based on its config, the format sensitivity test cases will be skipped.")
 
     if any(is_format_sensitivity(test_category) for test_category in all_test_categories) and MODEL_CONFIG_MAPPING[model_name].is_fc_model:
         test_cases_to_generate = [test_case for test_case in all_test_entries_involved if not is_format_sensitivity(test_case["id"])]
@@ -125,7 +120,7 @@ def build_bfclv4_envs(
     use_memory_env = any(is_memory(cat) for cat in all_test_categories)
     if use_memory_env:
         # test_cases_to_generate = clean_up_memory_prereq_entries(test_cases_to_generate)
-        model_name_dir = model_name[0].replace("/", "_")
+        model_name_dir = model_name.replace("/", "_")
         model_result_dir = RESULT_PATH / model_name_dir
         memory_result_path = model_result_dir / "agentic" / "memory"
         if memory_result_path.exists():
@@ -148,7 +143,7 @@ def build_bfclv4_envs(
     # ========== end memory ==========
 
     all_test_categories_final = all_test_categories
-    model_name_final = model_name[0]
+    model_name_final = model_name
     # 加载ground truth数据
     ground_truth_dict = {}
     for category in all_test_categories:
@@ -158,11 +153,12 @@ def build_bfclv4_envs(
                 if entry["id"].rsplit("_", 1)[0] == "web_search":
                     id = entry["id"].rsplit("_", 1)[1]
                     ground_truth_dict[category + "_" + id] = entry
-                ground_truth_dict[entry["id"]] = entry
                 # ========== memory: ground truth 原 id 为 memory_0-customer-0，test entry 为 memory_kv_0 等 ==========
-                if is_memory(category) and entry["id"].startswith("memory_"):
+                elif is_memory(category) and entry["id"].startswith("memory_"):
                     backend_id = entry["id"].replace("memory_", f"{category}_", 1)
                     ground_truth_dict[backend_id] = entry
+                else:
+                    ground_truth_dict[entry["id"]] = entry
                 # ========== end memory ==========
         except Exception as e:
             print(f"Warning: Failed to load ground truth for category {category}: {e}")

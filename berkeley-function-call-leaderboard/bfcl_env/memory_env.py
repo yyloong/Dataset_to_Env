@@ -8,7 +8,7 @@ from bfcl_eval.utils import (
     is_memory_prereq,
 )
 
-from agent_system.environments.bfcl_env.single_bfcl_env import BFCLEnv
+from single_bfcl_env import BFCLEnv
 
 
 # ========== BFCLMemoryEnv: memory 类别专用，同一 scenario 的 prereq+test 串行执行 ==========

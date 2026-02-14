@@ -10,7 +10,7 @@ from tqdm import tqdm
 # ================= 配置区域 =================
 # 1. BFCL 环境配置
 BFCL_MODEL_KEY = "Qwen/Qwen3-8B"
-TEST_CATEGORY = "live"
+TEST_CATEGORY = "format_sensitivity"
 ENV_NUM = 15  # 每个 batch 处理的样本数（与 bfcl_env_test 保持一致语义）
 GROUP_N = 1
 SEED = 42
