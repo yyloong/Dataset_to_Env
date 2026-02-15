@@ -100,6 +100,7 @@ def build_bfclv4_envs(
         all_test_categories,
         all_test_entries_involved,
     ) = get_involved_test_entries(test_category, None)
+    import pdb; pdb.set_trace()
 
     if model_name not in MODEL_CONFIG_MAPPING:
             raise ValueError(f"Unknown model_name '{model_name}'.\n• For officially supported models, please refer to `SUPPORTED_MODELS.md`.\n• For running new models, please refer to `README.md` and `CONTRIBUTING.md`.")

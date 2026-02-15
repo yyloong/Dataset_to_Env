@@ -10,11 +10,18 @@ from tqdm import tqdm
 # ================= 配置区域 =================
 # 1. BFCL 环境配置
 BFCL_MODEL_KEY = "Qwen/Qwen3-8B"
-TEST_CATEGORY = "format_sensitivity"
-ENV_NUM = 15  # 每个 batch 处理的样本数（与 bfcl_env_test 保持一致语义）
+#TEST_CATEGORY = "simple_java-simple_python-simple_javascript-parallel-multiple-parallel_multiple"
+#TEST_CATEGORY = "live_simple-live_multiple-live_parallel-live_parallel_multiple"
+#TEST_CATEGORY = "live_irrelevance-live_relevance-irrelevance"
+#TEST_CATEGORY = "memory"
+#TEST_CATEGORY = "web_search"
+#TEST_CATEGORY = "format_sensitivity"
+TEST_CATEGORY = "simple_java"
+
+ENV_NUM = 0 # 每个 batch 处理的样本数（与 bfcl_env_test 保持一致语义）
 GROUP_N = 1
 SEED = 42
-MAX_SAMPLES: Optional[int] = None  # 最多评估多少个样本，None 表示跑完整个数据集
+MAX_SAMPLES: Optional[int] = None # 最多评估多少个样本，None 表示跑完整个数据集
 
 # 2. 本地 vLLM 配置
 os.environ["NO_PROXY"] = "localhost,127.0.0.1"
@@ -22,6 +29,7 @@ VLLM_API_URL = "http://127.0.0.1:8000/v1"
 VLLM_MODEL_NAME = "Qwen/Qwen3-8B"
 MODEL_PATH = "Qwen/Qwen3-8B"
 
+# 与 BFCL 原生评测一致：使用 stop 避免模型在 <|im_end|> 后继续生成，导致解析失败
 STOP_TOKENS = ["<|im_end|>", "<|endoftext|>", "</s>"]
 
 # 多线程配置（仍然是“单条 prompt 调一次 API”，只是并行很多条）
@@ -54,7 +62,7 @@ def generate_single_action(
             model=VLLM_MODEL_NAME,
             prompt=prompt,  # 直接使用字符串 prompt
             max_tokens=4096,
-            temperature=1,
+            temperature=0.001,  # 与 BFCL 原生一致；temperature=1 会导致结构化输出几乎全错、simple_java 准确率为 0
             stop=STOP_TOKENS,
         )
         action = response.choices[0].text.strip()
@@ -157,8 +165,8 @@ def main():
 
     # ===== 全局统计（跨 batch）=====
     global_processed_count = 0
-    global_final_rewards = []
-    group_stats = [[] for _ in range(GROUP_N)]
+    # 按 test_category 分组统计 reward
+    category_stats = {}  # {test_category: {"rewards": [], "count": 0}}
 
     pbar_total = min(total_dataset_len, MAX_SAMPLES) if MAX_SAMPLES is not None else total_dataset_len
     pbar = tqdm(total=pbar_total, desc="Total Progress", unit="sample", ncols=100)
@@ -196,17 +204,15 @@ def main():
                 observations = observations[:remaining]
                 current_batch_size = remaining
 
-        # 计算当前 batch 每个任务的 Group ID（与 bfcl_env_test.py 对齐）
-        batch_group_ids = []
-        for i in range(current_batch_size):
-            abs_index = global_processed_count + i
-            group_id = abs_index % GROUP_N
-            batch_group_ids.append(group_id)
+        # 收集当前 batch 每个样本的 test_category
+        batch_categories = []
+        for info in infos:
+            test_category = info.get("test_category")
+            batch_categories.append(test_category)
 
         dones = [False] * current_batch_size
         episode_rewards = [0.0] * current_batch_size
         final_rewards = [None] * current_batch_size
-
         step_cnt = 0
 
         print(f"📊 当前 batch 大小: {current_batch_size}，最大步数 {max_steps}...")
@@ -248,41 +254,55 @@ def main():
         # ================= 收集当前 batch 的结果 =================
         for i in range(current_batch_size):
             reward = final_rewards[i] if final_rewards[i] is not None else 0.0
-            global_final_rewards.append(reward)
 
-            g_id = batch_group_ids[i]
-            group_stats[g_id].append(reward)
+            # 按 test_category 统计
+            test_category = batch_categories[i]
+            if test_category not in category_stats:
+                category_stats[test_category] = {"rewards": [], "count": 0}
+            category_stats[test_category]["rewards"].append(reward)
+            category_stats[test_category]["count"] += 1
 
         global_processed_count += current_batch_size
 
         # 更新进度条
         pbar.update(current_batch_size)
-        curr_avg = sum(global_final_rewards) / len(global_final_rewards) if global_final_rewards else 0.0
+        # 计算所有 category 的总体平均用于进度条显示
+        total_rewards = []
+        for stats in category_stats.values():
+            total_rewards.extend(stats["rewards"])
+        curr_avg = sum(total_rewards) / len(total_rewards) if total_rewards else 0.0
         pbar.set_postfix({"Avg": f"{curr_avg:.3f}", "Processed": f"{global_processed_count}"})
 
     pbar.close()
 
     # =================================================
 
-    print("\n" + "=" * 60)
-    print("📊 Final Evaluation Report")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("📊 Final Evaluation Report (by test_category)")
+    print("=" * 70)
 
-    total_evaluated = len(global_final_rewards)
-    overall_avg = sum(global_final_rewards) / total_evaluated if total_evaluated > 0 else 0.0
-    finished_count = sum(1 for r in global_final_rewards if r > 0.0)
+    # 计算总体统计
+    total_rewards = []
+    for stats in category_stats.values():
+        total_rewards.extend(stats["rewards"])
+    
+    total_evaluated = len(total_rewards)
+    finished_count = sum(1 for r in total_rewards if r > 0.0)
+    overall_pass_rate = finished_count / total_evaluated if total_evaluated > 0 else 0.0
 
     print(f"Total Instances Processed: {total_evaluated}")
-    print(f"Overall Average Reward   : {overall_avg:.4f}")
-    print(f"Finished (reward > 0)    : {finished_count}/{total_evaluated}")
+    print(f"Overall Pass Rate        : {overall_pass_rate:.2%} ({finished_count}/{total_evaluated})")
 
-    if GROUP_N > 1:
-        print("-" * 60)
-        print(f"{'Group ID':<10} | {'Count':<10} | {'Avg Reward':<12} | {'Pass Rate':<12}")
-        print("-" * 60)
+    # 按 test_category 打印统计
+    if category_stats:
+        print("-" * 70)
+        print(f"{'Category':<30} | {'Count':<8} | {'Avg Reward':<12} | {'Pass Rate':<12}")
+        print("-" * 70)
 
-        for g_id in range(GROUP_N):
-            rewards = group_stats[g_id]
+        # 按 category 名称排序
+        for category in sorted(category_stats.keys()):
+            stats = category_stats[category]
+            rewards = stats["rewards"]
             count = len(rewards)
             if count > 0:
                 avg_r = sum(rewards) / count
@@ -291,7 +311,11 @@ def main():
                 avg_r = 0.0
                 pass_r = 0.0
 
-            print(f"Sample {g_id:<3} | {count:<10} | {avg_r:.4f}       | {pass_r:.2%}")
+            # 截断过长的 category 名称
+            display_category = category[:28] + ".." if len(category) > 30 else category
+            print(f"{display_category:<30} | {count:<8} | {avg_r:.4f}       | {pass_r:.2%}")
+
+    print("=" * 70)
 
 
 if __name__ == "__main__":

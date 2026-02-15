@@ -7,11 +7,12 @@ from tqdm import tqdm
 # ================= 配置区域 =================
 # 1. BFCL 环境配置
 BFCL_MODEL_KEY = "Qwen/Qwen3-8B"
-TEST_CATEGORY = "web_search_base"
+TEST_CATEGORY = "simple_java"
 ENV_NUM = 0  # 并行环境数
 GROUP_N = 1
 SEED = 42
-RESULT_FILE = os.path.join(os.path.dirname(__file__), "result", BFCL_MODEL_KEY.replace("/", "_"), "agentic", f"BFCL_v4_{TEST_CATEGORY}_result.json")
+#RESULT_FILE = os.path.join(os.path.dirname(__file__), "result", BFCL_MODEL_KEY.replace("/", "_"), "agentic", f"BFCL_v4_{TEST_CATEGORY}_result.json")
+RESULT_FILE = "/home/u-longyy/efficient-verl-agent/agent_system/environments/bfcl_env/result/Qwen_Qwen3-8B/non_live/BFCL_v4_simple_java_result.json"
 
 
 def construct_actions(result_file_path):

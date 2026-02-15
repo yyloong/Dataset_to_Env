@@ -249,7 +249,7 @@ class BFCLEnv:
         self.entries = [deepcopy(entry) for _ in range(self.group_n)]
         self.entry_id = entry["id"]
         self.entry_category = extract_test_category_from_id(self.entry_id)
-        ground_truth_id = self.entry_id.split("classic:")[1] if self.entry_category == "format_sensitivity" else self.entry_id
+        ground_truth_id = self.entry_id.split("classic:")[-1] if self.entry_category == "format_sensitivity" else self.entry_id
         self.ground_truth = self.ground_truth_dict.get(ground_truth_id, {})
         self.is_multi_turn_interaction = contain_multi_turn_interaction(self.entry_id)
         self.is_FC = self.handler.is_fc_model if self.handler else False
@@ -289,8 +289,7 @@ class BFCLEnv:
             else:
                 observations = [self.init_single_single_turn_entry(idx) for idx in range(self.group_n)]
                 self.step_function = self.step_single_single_turn_entry
-        return observations, {"test_id": self.entry_id, "category": self.entry_category}
-
+        return observations, [{"test_id": self.entry_id,"group_id":i, "test_category": self.entry_category} for i in range(self.group_n)]
     def _precompute_eval_config(self):
         """
         预计算评估配置,在reset阶段调用
@@ -692,7 +691,7 @@ class BFCLEnv:
                 "Finished,just response ok.",
                 0.0,
                 self.dones[idx],
-                {"test_category": self.entry_category},
+                {"test_id": self.entry_id,"group_id":idx, "test_category": self.entry_category},
             )
 
         observation = self.step_function(idx, action)
@@ -704,6 +703,7 @@ class BFCLEnv:
             eval_result = self.evaluate_single(idx)
             reward = 1.0 if eval_result.get("valid", False) else 0.0
             error = eval_result.get("error", [])
+            eval_result["group_id"] = idx
             print(f"Idx: {idx}, Id: {self.entry_id} Finished, Reward: {reward}, Error: {error}")
             return observation, reward, self.dones[idx], eval_result
         else:
@@ -711,7 +711,7 @@ class BFCLEnv:
                 observation,
                 0.0,
                 self.dones[idx],
-                {"test_category": self.entry_category},
+                {"test_id": self.entry_id,"group_id":idx, "test_category": self.entry_category},
             )
 
     def get_obserbation(self, inference_data: dict):
