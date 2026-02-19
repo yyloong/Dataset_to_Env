@@ -102,6 +102,16 @@ def build_bfclv4_envs(
         all_test_entries_involved,
     ) = get_involved_test_entries(test_category, None)
 
+    # memory 与其它类别不能同时使用
+    memory_cats = [c for c in all_test_categories if is_memory(c)]
+    non_memory_cats = [c for c in all_test_categories if not is_memory(c)]
+    if memory_cats and non_memory_cats:
+        raise ValueError(
+            "memory 类别不能与其它 test category 同时使用。"
+            f"当前包含 memory 类别: {memory_cats}，非 memory 类别: {non_memory_cats}。"
+            "请分别单独指定 memory 或其它类别。"
+        )
+
     all_eval_entries = []
     for test_category in all_test_categories:
         all_eval_entries.extend(load_dataset_entry(test_category, include_prereq=True, include_language_specific_hint=False))
