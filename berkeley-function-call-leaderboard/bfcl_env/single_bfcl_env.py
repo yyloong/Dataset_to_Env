@@ -246,7 +246,9 @@ class BFCLEnv:
         self.ground_truth_dict = ground_truth_dict or {}
 
     def reset(self, entry):
+        entry , eval_entry = entry # In simple_java , simple_javascrips test categories,entry and eval_entry are not the same
         self.entries = [deepcopy(entry) for _ in range(self.group_n)]
+        self.eval_entries = [deepcopy(eval_entry) for _ in range(self.group_n)]
         self.entry_id = entry["id"]
         self.entry_category = extract_test_category_from_id(self.entry_id)
         ground_truth_id = self.entry_id.split("classic:")[-1] if self.entry_category == "format_sensitivity" else self.entry_id
@@ -387,7 +389,7 @@ class BFCLEnv:
                     handler=self.handler,
                     index=self.entry_id,
                     model_result_item=self.all_model_response[index],
-                    prompt_entry=self.entries[index],
+                    prompt_entry=self.eval_entries[index],
                     model_name=self.model_name,
                     test_category=self.entry_category,
                 )
@@ -398,7 +400,7 @@ class BFCLEnv:
                     index=self.entry_id,
                     model_result_list=self.all_model_response[index],
                     possible_answer_item=self.ground_truth.get("ground_truth", None),
-                    prompt_entry=self.entries[index],
+                    prompt_entry=self.eval_entries[index],
                     model_name=self.model_name,
                     test_category=self.entry_category,
                 )
@@ -409,7 +411,7 @@ class BFCLEnv:
                     test_entry_id=self.entry_id,
                     model_result_list=self.all_model_response[index],
                     ground_truth_list=self.ground_truth.get("ground_truth", []),
-                    prompt_entry=self.entries[index],
+                    prompt_entry=self.eval_entries[index],
                     model_name=self.model_name,
                     test_category=self.entry_category,
                 )
@@ -420,7 +422,7 @@ class BFCLEnv:
                     index=self.entry_id,
                     model_result_item=self.all_model_response[index],
                     possible_answer_item=self.ground_truth["ground_truth"],
-                    prompt_entry=self.entries[index],
+                    prompt_entry=self.eval_entries[index],
                     model_name=self.model_name,
                     test_category=self.entry_category,
                     language=self.eval_config["language"],
@@ -434,7 +436,7 @@ class BFCLEnv:
                     index=self.entry_id,
                     model_result_item=self.all_model_response[index],
                     possible_answer_item=self.ground_truth["ground_truth"],
-                    prompt_entry=self.entries[index],
+                    prompt_entry=self.eval_entries[index],
                     model_name=self.model_name,
                     test_category=self.entry_category,
                     language=self.eval_config["language"],
@@ -478,7 +480,7 @@ class BFCLEnv:
                 "error": [f"Evaluation failed: {str(e)}"],
                 "error_type": "evaluation_error",
                 "error_trace": error_trace,
-                "prompt": self.entries[index],
+                "prompt": self.eval_entries[index],
                 "model_result": self.all_model_response[index],
                 "possible_answer": self.ground_truth,
             }

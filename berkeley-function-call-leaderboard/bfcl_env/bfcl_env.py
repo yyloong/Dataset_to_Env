@@ -20,6 +20,7 @@ from bfcl_eval.utils import (
     is_format_sensitivity,
     is_memory,
     is_memory_prereq,
+    load_dataset_entry,
     populate_initial_settings_for_memory_test_cases,
     populate_initial_settings_for_web_search_test_cases,
     sort_key,
@@ -100,7 +101,10 @@ def build_bfclv4_envs(
         all_test_categories,
         all_test_entries_involved,
     ) = get_involved_test_entries(test_category, None)
-    import pdb; pdb.set_trace()
+
+    all_eval_entries = []
+    for test_category in all_test_categories:
+        all_eval_entries.extend(load_dataset_entry(test_category, include_prereq=True, include_language_specific_hint=False))
 
     if model_name not in MODEL_CONFIG_MAPPING:
             raise ValueError(f"Unknown model_name '{model_name}'.\n• For officially supported models, please refer to `SUPPORTED_MODELS.md`.\n• For running new models, please refer to `README.md` and `CONTRIBUTING.md`.")
@@ -133,6 +137,7 @@ def build_bfclv4_envs(
                 cat_entries = [e for e in test_cases_to_generate if extract_test_category_from_id(e.get("id", ""), remove_prereq=True) == cat.replace("_prereq", "")]
                 groups = _group_memory_entries_by_scenario(cat_entries, cat)
                 prompt_entries_total.extend(groups)
+        all_eval_entries = prompt_entries_total
         if env_num == 0:
             env_num = len(prompt_entries_total)
             print(f"env_num is 0, set env_num to memory groups: {env_num}")
@@ -205,6 +210,7 @@ def build_bfclv4_envs(
         envs=envs,
         resources_per_worker=resources_per_worker,
         by_turns=not is_train,
+        eval_prompt_entries_total=all_eval_entries,
         prompt_entries_total=prompt_entries_total,
         all_test_categories=all_test_categories_final,
     )
@@ -222,6 +228,7 @@ class BFCLVectorEnv:
         resources_per_worker=None,
         by_turns=False,
         prompt_entries_total=None,
+        eval_prompt_entries_total=None,
         all_test_categories=None,
     ):
         self.envs = envs
@@ -231,16 +238,19 @@ class BFCLVectorEnv:
         self.now_index = 0
         self.prompt_entries_total = prompt_entries_total or []
         self.all_test_categories = all_test_categories or []
+        self.eval_prompt_entries_total = eval_prompt_entries_total or []
+        assert len(self.prompt_entries_total) == len(self.eval_prompt_entries_total), "prompt_entries_total and eval_prompt_entries_total must have the same length"
+        self.entries_combine = [(self.prompt_entries_total[i], self.eval_prompt_entries_total[i]) for i in range(len(self.prompt_entries_total))]
         print("使用串行模式执行")
 
     def select_random(self):
-        return random.sample(self.prompt_entries_total, self.num_envs)
+        return random.sample(self.entries_combine, self.num_envs)
 
     def select_sequential(self):
-        if self.now_index >= len(self.prompt_entries_total):
+        if self.now_index >= len(self.entries_combine):
             self.now_index = 0
             raise StopIteration
-        entries = self.prompt_entries_total[self.now_index : self.now_index + self.num_envs]
+        entries = self.entries_combine[self.now_index : self.now_index + self.num_envs]
         self.now_index += self.num_envs
         return entries
 

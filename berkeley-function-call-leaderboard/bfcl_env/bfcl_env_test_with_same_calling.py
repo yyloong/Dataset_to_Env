@@ -13,12 +13,13 @@ BFCL_MODEL_KEY = "Qwen/Qwen3-8B"
 #TEST_CATEGORY = "simple_java-simple_python-simple_javascript-parallel-multiple-parallel_multiple"
 #TEST_CATEGORY = "live_simple-live_multiple-live_parallel-live_parallel_multiple"
 #TEST_CATEGORY = "live_irrelevance-live_relevance-irrelevance"
-#TEST_CATEGORY = "memory"
+TEST_CATEGORY = "memory"
 #TEST_CATEGORY = "web_search"
 #TEST_CATEGORY = "format_sensitivity"
-TEST_CATEGORY = "simple_java"
+#TEST_CATEGORY = "simple_java"
+#TEST_CATEGORY = "multi_turn"
 
-ENV_NUM = 0 # 每个 batch 处理的样本数（与 bfcl_env_test 保持一致语义）
+ENV_NUM = 15 # 每个 batch 处理的样本数（与 bfcl_env_test 保持一致语义）
 GROUP_N = 1
 SEED = 42
 MAX_SAMPLES: Optional[int] = None # 最多评估多少个样本，None 表示跑完整个数据集
