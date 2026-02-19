@@ -1,0 +1,21 @@
+{
+    "core_memory": {
+        "next_id": 7,
+        "store": {
+            "0": "User is in their mid-50s with chronic conditions and seasonal health challenges. Views health management as an ongoing commitment, prioritizing small habits, consistency, and long-term well-being over perfection.",
+            "1": "User emphasizes lifestyle changes, flexibility in routine due to Kansas weather, and proactive health management for aging, including adaptability to seasonal challenges.",
+            "2": "User manages Type 2 Diabetes via diet, prioritizing carb control with whole grains, lean proteins, and vegetables. Meals include Greek yogurt, grilled chicken salad, and soups. Emphasizes adaptability to seasonal changes.",
+            "3": "User prioritizes consistent, low-impact exercise(walking, yoga, stationary bike) for osteoarthritis and blood sugar management. Adapts routine to weather with indoor alternatives. Emphasizes sustainability over intensity.",
+            "4": "User manages stress through mindfulness(5-minute daily breathing/meditation) and gratitude journaling to mitigate hypertension. Highlights stress as a physical trigger and emphasizes small, consistent practices for emotional well-being.",
+            "5": "User prioritizes hydration for energy, digestion, and skin health. Uses water bottle, herbal teas over coffee, and increases intake during Kansas summers.",
+            "6": "User prioritizes preventative care with regular check-ups, timely medications, annual vaccines(flu, pneumonia, RSV), mammograms, and bone density monitoring due to family osteoporosis history. Emphasizes early detection for proactive health management."
+        }
+    },
+    "archival_memory": {
+        "next_id": 2,
+        "store": {
+            "0": "User discusses slowed metabolism, focusing on protein, healthy fats, and fiber to manage digestion. Avoids processed foods, cooks at home, and enjoys grilled salmon with roasted vegetables for nutrients and inflammation management.",
+            "1": "User discusses exercise routine adjustments, prioritizing consistency over intensity. Practices daily walking regardless of weather and incorporates light strength training(weights, resistance bands) to combat age-related muscle loss, improve balance, and support joint health."
+        }
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "core_memory": {
+        "next_id": 1,
+        "store": {
+            "0": "Michael's intent: Ready to order espresso machine, prefers stainless-steel finish, values caf\u00e9-like experience, taste, temperature control, and modern design aesthetics."
+        }
+    },
+    "archival_memory": {
+        "next_id": 0,
+        "store": {}
+    }
+}

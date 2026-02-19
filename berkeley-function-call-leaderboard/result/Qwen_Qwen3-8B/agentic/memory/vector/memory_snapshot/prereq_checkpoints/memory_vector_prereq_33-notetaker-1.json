@@ -1,0 +1,31 @@
+{
+    "core_memory": {
+        "next_id": 7,
+        "store": {
+            "0": "Monday: Team meeting ran over by 30 minutes.",
+            "1": "Need to finalize Q1 budget report before Friday.",
+            "2": "IT updated security protocols\u2014change passwords ASAP.",
+            "3": "Client call with Jacob\u2014delayed till Wednesday.",
+            "4": "Tuesday: System downtime from 10 AM - 12 PM, slowed down workflow.",
+            "5": "HR sent updated benefits package\u2014review before next month\u2019s deadline.",
+            "6": "Sent follow-up emails to vendors, waiting on response."
+        }
+    },
+    "archival_memory": {
+        "next_id": 12,
+        "store": {
+            "0": "Urgent: Submit tax documents before Friday.",
+            "1": "Review credit card statement for errors.",
+            "2": "Call auto repair shop about weird noise in the engine.",
+            "3": "Work-related: Finalize quarterly budget.",
+            "4": "Review vendor contract before signing.",
+            "5": "Finish security compliance training module.",
+            "6": "Tech: Back up laptop files.",
+            "7": "Update phone software.",
+            "8": "Cancel unused subscriptions.",
+            "9": "Personal: Schedule dentist appointment.",
+            "10": "Stick to gym 3x this week.",
+            "11": "Call mom\u2014it\u2019s been a while."
+        }
+    }
+}

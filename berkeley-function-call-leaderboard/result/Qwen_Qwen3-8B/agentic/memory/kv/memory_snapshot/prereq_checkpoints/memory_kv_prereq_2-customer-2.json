@@ -1,0 +1,11 @@
+{
+    "core_memory": {
+        "user_introduction": "Michael, first time interacting with the company.",
+        "user_preferences": "Michael, 35, Seattle, freelance graphic designer, values seamless gadget integration into lifestyle, interested in high-quality coffee machines(drip and espresso) for morning routine upgrade.",
+        "user_coffee_preferences": "confirmed espresso machine with stainless-steel finish for caf\u00e9-like experience and modern design",
+        "user_intent": "confirmed stainless_steel_finish_for_espresso_machine",
+        "steam_wand_confirmation": "confirmed steam wand for milk frothing to make lattes and cappuccinos",
+        "kitchen_counter_size": "38 square feet, may need to relocate toaster oven"
+    },
+    "archival_memory": {}
+}

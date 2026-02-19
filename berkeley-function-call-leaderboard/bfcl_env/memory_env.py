@@ -9,6 +9,7 @@ from bfcl_eval.utils import (
 )
 
 from single_bfcl_env import BFCLEnv
+import single_bfcl_env as single_bfcl_env_module
 
 
 # ========== BFCLMemoryEnv: memory 类别专用，同一 scenario 的 prereq+test 串行执行 ==========
@@ -101,11 +102,13 @@ class BFCLMemoryEnv(BFCLEnv):
             if is_prereq:
                 # ========== prereq 结束: 先 flush memory 到磁盘，再切换到对应 test ==========
                 # base_handler.inference 会在对话结束时 flush，但 BFCLEnv 逐 turn 执行，需在此手动调用
+                # 注意: 实例存储在 single_bfcl_env 模块的 globals 中（由 execute_multi_turn_func_call 创建），
+                # 不能使用 memory_env 的 globals()，否则永远找不到实例
                 for class_name in self.involved_classes:
                     instance_name = f"{self.handler.model_name_underline_replaced}_{self.entry_id}_{class_name}_env{self.env_id}_idx{idx}_instance"
                     instance_name = re.sub(r"[-./]", "_", instance_name)
-                    if instance_name in globals():
-                        memory_instance = globals()[instance_name]
+                    if instance_name in vars(single_bfcl_env_module):
+                        memory_instance = getattr(single_bfcl_env_module, instance_name)
                         if hasattr(memory_instance, "_flush_memory_to_local_file"):
                             memory_instance._flush_memory_to_local_file()
                 self.dones[idx] = False
