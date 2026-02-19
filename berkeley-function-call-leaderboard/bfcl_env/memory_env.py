@@ -37,6 +37,8 @@ class BFCLMemoryEnv(BFCLEnv):
 
     def reset(self, entry):
         """entry 为 group 格式: {"entries": [...], "scenario": str, "memory_test_category": str}"""
+        # memory env eval entry and test entry are the same
+        entry = entry[0]
         self.memory_group_entries = entry["entries"]
         self.current_memory_entry_idx = 0
         self.memory_test_scores = []
@@ -46,6 +48,8 @@ class BFCLMemoryEnv(BFCLEnv):
     def _reset_for_sub_entry(self, sub_entry):
         """为单个 sub_entry 设置内部状态并返回初始 observation"""
         self.entries = [deepcopy(sub_entry) for _ in range(self.group_n)]
+        # memory env eval entry and test entry are the same
+        self.eval_entries = self.entries
         self.entry_id = sub_entry["id"]
         self.entry_category = extract_test_category_from_id(self.entry_id)
         self.ground_truth = self.ground_truth_dict.get(self.entry_id, {})
@@ -69,7 +73,7 @@ class BFCLMemoryEnv(BFCLEnv):
         else:
             obs = self.init_single_multi_turn_entry(0)
             self.step_function = self.step_single_multi_turn_entry
-        return [obs], {"test_id": self.entry_id, "category": self.entry_category}
+        return [obs], [{"test_id": self.entry_id, "test_category": self.entry_category}]
 
     def _load_next_sub_entry(self, idx: int):
         """切换到下一个 sub_entry，返回其初始 observation"""

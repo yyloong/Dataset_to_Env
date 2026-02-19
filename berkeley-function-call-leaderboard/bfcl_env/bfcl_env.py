@@ -180,6 +180,7 @@ def build_bfclv4_envs(
         print("\033[93mWarning: In evaluation mode, the number of prompt entries is not divisible by the number of envs. The last batch will be truncated.\033[0m")
         print("\033[93mIf you want to use full evaluation data, please set the number of envs to be a multiple of the number of prompt entries.\033[0m")
         prompt_entries_total = prompt_entries_total[: len(prompt_entries_total) - len(prompt_entries_total) % env_num]
+        all_eval_entries = all_eval_entries[: len(all_eval_entries) - len(all_eval_entries) % env_num]
         print(f"Truncated prompt entries to: {len(prompt_entries_total)}")
 
     # ========== memory 类别使用 BFCLMemoryEnv ==========
