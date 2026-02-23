@@ -166,3 +166,9 @@ toolenv
 server/server_cache.tar.gz
 .idea
 /server_docker/
+data/
+tools_folder/
+data_converted/
+data_pass_rate_results/
+eval_result_grouped_*.json
+

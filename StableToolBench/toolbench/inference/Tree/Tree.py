@@ -1,7 +1,7 @@
 from termcolor import colored
 import numpy as np
 from copy import deepcopy
-from utils import softmax_bias
+from toolbench.inference.utils import softmax_bias
 import math
 
 class my_tree:

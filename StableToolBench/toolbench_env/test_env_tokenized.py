@@ -20,10 +20,10 @@ MAX_SAMPLES = 163  # 指定测试样本数量，None 表示跑完全部数据；
 
 os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 VLLM_API_URL = "http://127.0.0.1:8000/v1"
-VLLM_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-MODEL_PATH = "Qwen/Qwen2.5-7B-Instruct"
-# VLLM_MODEL_NAME = "ToolBench/ToolLLaMA-2-7b-v2"
-# MODEL_PATH = "ToolBench/ToolLLaMA-2-7b-v2"
+#VLLM_MODEL_NAME = "Qwen/Qwen3-8B"
+#MODEL_PATH = "Qwen/Qwen3-8B"
+VLLM_MODEL_NAME = "ToolBench/ToolLLaMA-2-7b-v2"
+MODEL_PATH = "ToolBench/ToolLLaMA-2-7b-v2"
 
 STOP_TOKENS = ["<|im_end|>", "<|endoftext|>", "</s>"]
 
@@ -36,12 +36,12 @@ class SpecificArgs:
     max_sequence_length: int = 1024
     evaluator_name: str = "tooleval_aliyun-deepseek-normalization"
     evaluators_cfg_path: str = "toolbench/tooleval/evaluators"
-    template: str = "chat_model"
-    # template: str = "tool-llama-single-round"
+    #template: str = "chat_model"
+    template: str = "tool-llama-single-round"
     single_chain_max_step: int = 12
     evaluation_times: int = 1
     model_path: str = MODEL_PATH
-    tool_root_dir: str = "data/toolenv/tools/"
+    tool_root_dir: str = "tools_folder/server_cache/tools"
     toolbench_key: str = "EMPTY"
     rapidapi_key: str = "EMPTY"
     use_rapidapi_key: bool = False
@@ -50,7 +50,7 @@ class SpecificArgs:
     max_observation_length: int = 1024
     observ_compress_method: str = "truncate"
     base_url: str = VLLM_API_URL
-    method: str = "DFS"
+    method: str = "CoT"
     tree_beam_size: int = 4
     max_query_count: int = 200
     answer: int = 1
@@ -114,8 +114,8 @@ def generate_actions_openai_batch(
             print("⚠️ Warning: Tokenizer is missing, falling back to raw text string.")
         # ============ 修改结束 ============
         for i, prompt_input in enumerate(prompt_inputs):
-            if len(prompt_input) > 2 * 4096 - 1024:
-                prompt_inputs[i] = prompt_input[-(2 * 4096 - 1024) :]
+            if len(prompt_input) > 2 * 4096 - args.max_sequence_length:
+                prompt_inputs[i] = prompt_input[-(2 * 4096 - args.max_sequence_length) :]
 
         """
         response = client.completions.create(
@@ -131,7 +131,7 @@ def generate_actions_openai_batch(
         )
         """
         extra_body = {
-            "truncate_prompt_tokens": 2 * 4096 - 1024,
+            "truncate_prompt_tokens": 2 * 4096 - args.max_sequence_length,
             # "top_p": 0.8,
             # "top_k": 20,
             # "repetition_penalty": 1.05,
