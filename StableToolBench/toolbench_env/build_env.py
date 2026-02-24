@@ -6,8 +6,8 @@ from toolbench.inference.Downstream_tasks.rapidapi_multithread import contain, g
 from toolbench.inference.LLM.retriever import ToolRetriever
 from transformers import AutoTokenizer
 
-from agent_system.environments.StableToolBench.toolbench_env.DFS_env import DFSEnv
-from agent_system.environments.StableToolBench.toolbench_env.single_chain_env import (
+from toolbench_env.DFS_env import DFSEnv
+from toolbench_env.single_chain_env import (
     SingleChainEnv,
 )
 

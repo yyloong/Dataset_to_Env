@@ -143,7 +143,7 @@ def generate_actions_openai_batch(
             model=VLLM_MODEL_NAME,
             prompt=prompt_inputs,
             max_tokens=args.max_sequence_length,
-            temperature=1.2,
+            temperature=1.0,
             n=1,
             logprobs=0,
             extra_body=extra_body,
