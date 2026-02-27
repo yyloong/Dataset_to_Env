@@ -13,12 +13,12 @@ BFCL_MODEL_KEY = "Qwen/Qwen3-8B"
 #TEST_CATEGORY = "simple_java-simple_python-simple_javascript-parallel-multiple-parallel_multiple"
 #TEST_CATEGORY = "live_simple-live_multiple-live_parallel-live_parallel_multiple"
 #TEST_CATEGORY = "live_irrelevance-live_relevance-irrelevance"
-TEST_CATEGORY = "live_simple"
+#TEST_CATEGORY = "live_simple"
 #TEST_CATEGORY = "memory"
 #TEST_CATEGORY = "web_search"
 #TEST_CATEGORY = "format_sensitivity"
 #TEST_CATEGORY = "simple_java"
-#TEST_CATEGORY = "multi_turn"
+TEST_CATEGORY = "multi_turn_miss_func"
 
 ENV_NUM = 0 # 每个 batch 处理的样本数（与 bfcl_env_test 保持一致语义）
 GROUP_N = 1
@@ -28,8 +28,8 @@ MAX_SAMPLES: Optional[int] = None # 最多评估多少个样本，None 表示跑
 # 2. 本地 vLLM 配置
 os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 VLLM_API_URL = "http://127.0.0.1:8000/v1"
-VLLM_MODEL_NAME = "Qwen/Qwen3-8B"
-MODEL_PATH = "Qwen/Qwen3-8B"
+VLLM_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
+MODEL_PATH = "Qwen/Qwen2.5-7B-Instruct"
 
 # 与 BFCL 原生评测一致：使用 stop 避免模型在 <|im_end|> 后继续生成，导致解析失败
 STOP_TOKENS = ["<|im_end|>", "<|endoftext|>", "</s>"]
