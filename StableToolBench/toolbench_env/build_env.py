@@ -2,7 +2,12 @@ import asyncio
 import json
 import random
 
-from toolbench.inference.Downstream_tasks.rapidapi_multithread import contain, get_white_list, rapidapi_wrapper, standardize
+from toolbench.inference.Downstream_tasks.rapidapi_multithread import (
+    contain,
+    get_white_list,
+    rapidapi_wrapper,
+    standardize,
+)
 from toolbench.inference.LLM.retriever import ToolRetriever
 from transformers import AutoTokenizer
 
@@ -27,7 +32,9 @@ def build_toolbench_envs(
     filtered_querys = []
     for data_dict in querys:
         if "api_list" in data_dict:
-            origin_tool_names = [standardize(cont["tool_name"]) for cont in data_dict["api_list"]]
+            origin_tool_names = [
+                standardize(cont["tool_name"]) for cont in data_dict["api_list"]
+            ]
             tool_des = contain(origin_tool_names, white_list)
             if tool_des is False:
                 continue
@@ -37,7 +44,9 @@ def build_toolbench_envs(
     querys = filtered_querys
     filtered_count = original_query_count - len(querys)
     if filtered_count > 0:
-        print(f"\033[93mFiltered {filtered_count} queries (not in white_list). Remaining: {len(querys)} / {original_query_count}\033[0m")
+        print(
+            f"\033[93mFiltered {filtered_count} queries (not in white_list). Remaining: {len(querys)} / {original_query_count}\033[0m"
+        )
     #######################################################################
 
     retriever = None
@@ -52,8 +61,12 @@ def build_toolbench_envs(
         print(f"\033[93mEvaluation mode, querys length: {len(querys)}\033[0m")
         if len(querys) % env_num != 0:
             # 用黄色打印警告
-            print("\033[93mWarning: In evaluation mode, the number of queries is not divisible by the number of environments. The last batch will be truncated.\033[0m")
-            print("\033[93mIf you want to use full evaluation data, please set the number of environments to be a multiple of the number of queries.\033[0m")
+            print(
+                "\033[93mWarning: In evaluation mode, the number of queries is not divisible by the number of environments. The last batch will be truncated.\033[0m"
+            )
+            print(
+                "\033[93mIf you want to use full evaluation data, please set the number of environments to be a multiple of the number of queries.\033[0m"
+            )
             querys = querys[: len(querys) - len(querys) % env_num]
             print(f"\033[93mTruncated queries to: {len(querys)}\033[0m")
 
@@ -65,11 +78,32 @@ def build_toolbench_envs(
         trust_remote_code=True,
     )
 
-    return ToolbenchVectorEnv(env_num, group_n, query_list=querys, is_random=is_train, white_list=white_list, retriever=retriever, specific_args=specific_args, tokenizer=tokenizer, resources_per_worker=resources_per_worker["num_cpus"])
+    return ToolbenchVectorEnv(
+        env_num,
+        group_n,
+        query_list=querys,
+        is_random=is_train,
+        white_list=white_list,
+        retriever=retriever,
+        specific_args=specific_args,
+        tokenizer=tokenizer,
+        resources_per_worker=resources_per_worker["num_cpus"],
+    )
 
 
 class ToolbenchVectorEnv:
-    def __init__(self, env_num, group_n, query_list=None, is_random=None, white_list=None, retriever=None, specific_args=None, tokenizer=None, resources_per_worker=None):
+    def __init__(
+        self,
+        env_num,
+        group_n,
+        query_list=None,
+        is_random=None,
+        white_list=None,
+        retriever=None,
+        specific_args=None,
+        tokenizer=None,
+        resources_per_worker=None,
+    ):
         self.env_num = env_num
         self.group_n = group_n
         self.now_index = 0
@@ -115,7 +149,9 @@ class ToolbenchVectorEnv:
             self.now_index = 0
             print(f"\033[93m DataSet reset, reset the index to {self.now_index}\033[0m")
 
-        self.envs_selected = self._query_list[self.now_index : self.now_index + self.env_num]
+        self.envs_selected = self._query_list[
+            self.now_index : self.now_index + self.env_num
+        ]
 
         self.now_index += len(self.envs_selected)
 
@@ -132,11 +168,16 @@ class ToolbenchVectorEnv:
         for i, data_dict in enumerate(self.envs_selected):
             # query_list 已在 build_single_chain_envs 中按 white_list 过滤，此处仅计算 tool_des
             if "api_list" in data_dict:
-                origin_tool_names = [standardize(cont["tool_name"]) for cont in data_dict["api_list"]]
+                origin_tool_names = [
+                    standardize(cont["tool_name"]) for cont in data_dict["api_list"]
+                ]
                 tool_des = contain(origin_tool_names, self._white_list)
                 # if tool_des is False:
                 #    continue
-                tool_des = [[cont["standard_tool_name"], cont["description"]] for cont in tool_des]
+                tool_des = [
+                    [cont["standard_tool_name"], cont["description"]]
+                    for cont in tool_des
+                ]
             else:
                 tool_des = None
             for j in range(self.group_n):
@@ -150,7 +191,9 @@ class ToolbenchVectorEnv:
                         process_id=idx,
                     )
                 )
-                observation, info = self.envs[idx].reset(self.rapidapi_wrappers[idx], data_dict["query_id"])
+                observation, info = self.envs[idx].reset(
+                    self.rapidapi_wrappers[idx], data_dict["query_id"]
+                )
                 observations.append(observation)
                 infos.append(info)
 

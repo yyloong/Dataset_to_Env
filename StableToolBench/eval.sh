@@ -1,6 +1,6 @@
 export CONVERTED_ANSWER_PATH=data_converted
 export SAVE_PATH=data_pass_rate_results
-export CANDIDATE_MODEL=qwen_cot
+export CANDIDATE_MODEL=qwen2.5-14B_cot
 
 # 取消 OPENAI_KEY 环境变量，避免与 api_key.json 冲突
 unset OPENAI_KEY

@@ -1,6 +1,6 @@
 export RAW_ANSWER_PATH=data
 export CONVERTED_ANSWER_PATH=data_converted
-export MODEL_NAME=qwen_cot
+export MODEL_NAME=qwen2.5-14B_cot
 export METHOD=CoT@1
 mkdir ${CONVERTED_ANSWER_PATH}/${MODEL_NAME}
 for test_set in G1_instruction #G1_category G1_tool G2_category G2_instruction G3_instruction

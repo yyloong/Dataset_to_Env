@@ -107,13 +107,21 @@ class SingleChainEnv(ToolbenchEnv):
                 # ================= 异步并发调用 API =================
                 # 获取当前运行的 loop（即 VectorEnv 里的 self.loop）
                 loop = asyncio.get_running_loop()
-                observation, status = await loop.run_in_executor(
-                    None,
-                    lambda child_io_state=child_io_state, function_input=function_input, action_name=self.now_node.description: child_io_state.step(
-                        action_name=action_name,
-                        action_input=function_input,
-                    ),
-                )
+                try:
+                    observation, status = await loop.run_in_executor(
+                        None,
+                        lambda child_io_state=child_io_state, function_input=function_input, action_name=self.now_node.description: child_io_state.step(
+                            action_name=action_name,
+                            action_input=function_input,
+                        ),
+                    )
+                except Exception as e:
+                    # 将底层执行错误统一视为“无对应 API 名称”（status=1），
+                    # 与 rapidapi_wrapper._step 返回 code=1 的语义保持一致，
+                    # 允许上层环境按“工具名幻觉”逻辑继续尝试，而不是直接中止整个进程。
+                    print(f"\033[93m Error in tool call (process_id={self.process_id}): {e}\033[0m")
+                    observation = f"{{\"error\": \"Exception in tool call: {e}\", \"response\": \"\"}}"
+                    status = 1
                 # ===================================================
 
                 temp_node.observation = observation

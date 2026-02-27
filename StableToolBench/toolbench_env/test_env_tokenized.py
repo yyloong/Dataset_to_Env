@@ -22,8 +22,10 @@ os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 VLLM_API_URL = "http://127.0.0.1:8000/v1"
 #VLLM_MODEL_NAME = "Qwen/Qwen3-8B"
 #MODEL_PATH = "Qwen/Qwen3-8B"
-VLLM_MODEL_NAME = "ToolBench/ToolLLaMA-2-7b-v2"
-MODEL_PATH = "ToolBench/ToolLLaMA-2-7b-v2"
+#VLLM_MODEL_NAME = "ToolBench/ToolLLaMA-2-7b-v2"
+
+VLLM_MODEL_NAME = "Qwen/Qwen3-4B-Instruct-2507"
+MODEL_PATH = "Qwen/Qwen3-4B-Instruct-2507"
 
 STOP_TOKENS = ["<|im_end|>", "<|endoftext|>", "</s>"]
 
